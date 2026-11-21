@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Practical Quiz 2 – Hut in an Open Field (A-Frame, no models)</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<!-- <script src="aframe.js"></script> -->
 <script>
 /* ============ HELPERS (units: metres, +Y up, camera looks toward -Z) ============ */
 // Add a child primitive with the given attributes.
@@ -199,7 +198,8 @@ AFRAME.registerComponent('grass', {
         k++;
         d.position.set(x, 0, z);
         d.rotation.set((rnd() - 0.5) * 0.12, rnd() * 6.283, (rnd() - 0.5) * 0.12);   // less tilt = tidier
-        const s = 0.85 + rnd() * 0.3;   // narrower height range d.scale.set(w, h * s, w); d.updateMatrix();
+        const s = 0.85 + rnd() * 0.3;                                                  // narrower height range
+        d.scale.set(w, h * s, w); d.updateMatrix();
         mesh.setMatrixAt(i, d.matrix); mesh.setColorAt(i++, c.copy(a).lerp(b, rnd()));
       }
     };
