@@ -33,14 +33,69 @@ AFRAME.registerShader('skygrad', {
   fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ float h = clamp(vP.y,0.0,1.0); gl_FragColor = vec4(mix(bottom, top, pow(h,0.6)), 1.0); }'
 });
 
-/* ============ CHAIR (matte, no glow). Faces +Z at rotation 0; backrest on -Z side ============ */
+/* ============ STYLING HELPERS: procedural textures (no image files) + mesh shortcut ============ */
+function canvasTex(draw, w, h, rx, ry) {          // draw(ctx,w,h) paints a small tileable texture
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 8;
+  if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const MAT = {};                                    // material cache: all chairs/tables share the same materials
+function leatherMat() {                            // cognac leather with a fine pebbled grain
+  return MAT.leather || (MAT.leather = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.05,
+    map: canvasTex((g, w, h) => { g.fillStyle = '#7a3b1d'; g.fillRect(0, 0, w, h); const r = rng(5);
+      for (let i = 0; i < 2500; i++) { g.fillStyle = r() < 0.5 ? 'rgba(0,0,0,0.13)' : 'rgba(255,190,140,0.09)';
+        g.beginPath(); g.arc(r() * w, r() * h, 1 + r() * 2, 0, 6.283); g.fill(); } }, 256, 256, 2, 2) }));
+}
+function woodMat(key, base) {                      // walnut-style wood with wavy grain lines
+  return MAT[key] || (MAT[key] = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.02,
+    map: canvasTex((g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h); const r = rng(11);
+      for (let i = 0; i < 90; i++) { const y = r() * h; g.strokeStyle = 'rgba(0,0,0,' + (0.05 + r() * 0.12) + ')'; g.lineWidth = 1 + r() * 2.5;
+        g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.02 + y) * 3); g.stroke(); } }, 256, 256, 1, 1) }));
+}
+function solidMat(key, color, rough, metal) { return MAT[key] || (MAT[key] = new THREE.MeshStandardMaterial({ color: color, roughness: rough, metalness: metal })); }
+function addMesh(group, geo, mat, x, y, z) {       // creates a shadow-casting mesh at (x,y,z)
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; group.add(m); return m;
+}
+
+/* ============ CHAIR (styled): walnut frame, tapered legs, leather seat + tufted leather back, brass buttons.
+   Faces +Z at rotation 0 (backrest on the -Z side). ============ */
 AFRAME.registerComponent('chair', {
   init: function () {
-    const el = this.el, mat = 'color: #8d5a2b; roughness: 0.85';
-    part(el, 'a-box', { position: '0 0.45 0', width: 0.42, height: 0.04, depth: 0.42, material: mat, shadow: 'cast: true; receive: true' });
-    [[-0.19, -0.19], [0.19, -0.19], [-0.19, 0.19], [0.19, 0.19]].forEach(p =>
-      part(el, 'a-cylinder', { position: p[0] + ' 0.215 ' + p[1], radius: 0.02, height: 0.43, material: mat, shadow: 'cast: true' }));
-    part(el, 'a-box', { position: '0 0.72 -0.2', width: 0.42, height: 0.5, depth: 0.03, material: mat, shadow: 'cast: true; receive: true' });
+    const g = this.el.object3D, wood = woodMat('wood', '#5b3a22'), leather = leatherMat(), brass = solidMat('brass', '#c9a24a', 0.4, 0.3);
+    addMesh(g, new THREE.BoxGeometry(0.42, 0.04, 0.42), wood, 0, 0.43, 0);                    // seat frame
+    addMesh(g, new THREE.BoxGeometry(0.40, 0.06, 0.40), leather, 0, 0.48, 0);                 // leather seat cushion
+    [[-0.2, 0, 'z'], [0.2, 0, 'z'], [0, -0.2, 'x'], [0, 0.2, 'x']].forEach(p => {             // piping around the cushion edge
+      const m = addMesh(g, new THREE.CylinderGeometry(0.008, 0.008, 0.40, 8), leather, p[0], 0.51, p[1]);
+      if (p[2] === 'x') m.rotation.z = Math.PI / 2; else m.rotation.x = Math.PI / 2; });
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(p => {
+      addMesh(g, new THREE.CylinderGeometry(0.022, 0.014, 0.41, 16), wood, p[0] * 0.18, 0.205, p[1] * 0.18);   // tapered legs
+      addMesh(g, new THREE.CylinderGeometry(0.016, 0.016, 0.012, 12), brass, p[0] * 0.18, 0.006, p[1] * 0.18); // brass feet
+    });
+    [-0.18, 0.18].forEach(v => {                                                              // stretcher rails
+      addMesh(g, new THREE.BoxGeometry(0.34, 0.02, 0.02), wood, 0, 0.15, v);
+      addMesh(g, new THREE.BoxGeometry(0.02, 0.02, 0.34), wood, v, 0.15, 0);
+    });
+    addMesh(g, new THREE.BoxGeometry(0.42, 0.46, 0.03), wood, 0, 0.70, -0.2);                 // backrest frame
+    addMesh(g, new THREE.BoxGeometry(0.44, 0.03, 0.05), wood, 0, 0.945, -0.2);                // top rail cap
+    addMesh(g, new THREE.BoxGeometry(0.34, 0.34, 0.035), leather, 0, 0.70, -0.168);           // leather back pad
+    [[-0.07, 0.07], [0.07, 0.07], [-0.07, -0.07], [0.07, -0.07]].forEach(p =>                 // brass tufting buttons
+      addMesh(g, new THREE.SphereGeometry(0.009, 10, 8), brass, p[0], 0.70 + p[1], -0.15));
+  }
+});
+
+/* ============ STYLED TABLE: grained walnut top, apron, tapered legs with brass shoes, linen runner ============ */
+AFRAME.registerComponent('styled-table', {
+  init: function () {
+    const g = this.el.object3D, wood = woodMat('tablewood', '#6b4423'), brass = solidMat('brass', '#c9a24a', 0.4, 0.3);
+    addMesh(g, new THREE.BoxGeometry(1.2, 0.04, 0.8), wood, 0, 0.76, 0);                      // table top (surface y = 0.78)
+    [-0.34, 0.34].forEach(z => addMesh(g, new THREE.BoxGeometry(1.04, 0.07, 0.02), wood, 0, 0.705, z));   // apron under the top
+    [-0.51, 0.51].forEach(x => addMesh(g, new THREE.BoxGeometry(0.02, 0.07, 0.64), wood, x, 0.705, 0));
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(p => {
+      addMesh(g, new THREE.CylinderGeometry(0.035, 0.022, 0.74, 16), wood, p[0] * 0.54, 0.37, p[1] * 0.34);   // tapered legs
+      addMesh(g, new THREE.CylinderGeometry(0.025, 0.025, 0.04, 16), brass, p[0] * 0.54, 0.02, p[1] * 0.34);  // brass shoes
+    });
+    addMesh(g, new THREE.BoxGeometry(1.1, 0.004, 0.22), solidMat('linen', '#e9dfc4', 1, 0), 0, 0.782, 0);     // linen runner
+    [-0.09, 0.09].forEach(z => addMesh(g, new THREE.BoxGeometry(1.1, 0.0045, 0.012), brass, 0, 0.7822, z));   // gold edge stripes
   }
 });
 
@@ -283,12 +338,8 @@ AFRAME.registerComponent('backdrop', {
   <a-entity hut></a-entity>
   <a-circle position="0 0.02 0" rotation="-90 0 0" radius="1.1" material="color: #7a9e9f" shadow="receive: true"></a-circle>
 
-  <!-- ===== TABLE (1.2 x 0.8 m, surface at y = 0.78) ===== -->
-  <a-box position="0 0.76 0" width="1.2" height="0.04" depth="0.8" material="color: #a0693a; roughness: 0.6" shadow="cast: true; receive: true"></a-box>
-  <a-cylinder position="-0.54 0.37 -0.34" radius="0.03" height="0.74" color="#6b4423" shadow="cast: true"></a-cylinder>
-  <a-cylinder position="0.54 0.37 -0.34" radius="0.03" height="0.74" color="#6b4423" shadow="cast: true"></a-cylinder>
-  <a-cylinder position="-0.54 0.37 0.34" radius="0.03" height="0.74" color="#6b4423" shadow="cast: true"></a-cylinder>
-  <a-cylinder position="0.54 0.37 0.34" radius="0.03" height="0.74" color="#6b4423" shadow="cast: true"></a-cylinder>
+  <!-- ===== TABLE (styled; 1.2 x 0.8 m, surface at y = 0.78) ===== -->
+  <a-entity styled-table></a-entity>
 
   <!-- ===== CHAIRS (all face the table) ===== -->
   <a-entity chair position="0 0 -0.75"></a-entity>
@@ -297,8 +348,8 @@ AFRAME.registerComponent('backdrop', {
   <a-entity chair position="0.95 0 0" rotation="0 -90 0"></a-entity>
 
   <!-- ===== PROPS (tins are static: rotation 0 0 0) ===== -->
-  <a-entity tin="kind: milo; radius: 0.055; height: 0.13" position="-0.1 0.78 0.02" rotation="0 0 0"></a-entity>
-  <a-entity tin="kind: nido; radius: 0.07; height: 0.19" position="0.09 0.78 -0.02" rotation="0 0 0"></a-entity>
+  <a-entity tin="kind: milo; radius: 0.065; height: 0.16" position="-0.1 0.78 0.02" rotation="0 0 0"></a-entity>
+  <a-entity tin="kind: nido; radius: 0.065; height: 0.16" position="0.09 0.78 -0.02" rotation="0 0 0"></a-entity>
   <!-- Three cups, one in front of each of three chairs (back, front, left); handles on each sitter's right -->
   <a-entity cup position="0 0.78 -0.27" rotation="0 180 0"></a-entity>      <!-- back chair -->
   <a-entity cup="color: #ffe0b2" position="0 0.78 0.27"></a-entity>          <!-- front chair -->
