@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Practical Quiz 2 – Hut in an Open Field (A-Frame, no models)</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="aframe.js"></script>
 <script>
 /* ============ HELPERS (units: metres, +Y up, camera looks toward -Z) ============ */
 // Add a child primitive with the given attributes.
@@ -24,14 +25,6 @@ const PATHS = [
   [[0, 1.8], [0, 5], [0.5, 8], [3, 14], [2, 22], [-1, 32], [-3, 45]],   // front trail toward the camera side
   [[1.8, 0], [5, 0], [7, -1], [11, -4], [12, -10]]                      // side trail winding between the trees
 ];
-function onPath(x, z) {            // true if (x,z) is on a trail (+0.15 m margin so grass doesn't touch it)
-  for (const p of PATHS) for (let i = 0; i < p.length - 1; i++) {
-    const ax = p[i][0], az = p[i][1], dx = p[i + 1][0] - ax, dz = p[i + 1][1] - az;
-    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
-    if (Math.hypot(x - (ax + t * dx), z - (az + t * dz)) < PATH_W / 2 + 0.15) return true;
-  } return false;
-}
-
 /* ============ SKY: vertical gradient shader ============ */
 AFRAME.registerShader('skygrad', {
   schema: { top: { type: 'color', default: '#4a90d9', is: 'uniform' },
@@ -183,33 +176,6 @@ AFRAME.registerComponent('hut', {
   }
 });
 
-/* ============ GRASS: GPU-instanced blades (2 draw-call-free instances in one mesh) ============ */
-AFRAME.registerComponent('grass', {
-  init: function () {
-    const rnd = rng(7), geo = new THREE.ConeGeometry(0.022, 0.2, 3); geo.translate(0, 0.1, 0);   // shorter, finer blade
-    const N1 = 8000, N2 = 2000;                                   // dense zone, medium zone
-    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff }), N1 + N2);
-    const d = new THREE.Object3D(), c = new THREE.Color(), a = new THREE.Color('#3f7d2e'), b = new THREE.Color('#7fb04a');
-    let i = 0;
-    const scatter = (n, r0, r1, w, h) => {
-      for (let k = 0; k < n;) {
-        const r = Math.sqrt(r0 * r0 + rnd() * (r1 * r1 - r0 * r0)), t = rnd() * 6.283, x = Math.cos(t) * r, z = Math.sin(t) * r;
-        if ((Math.abs(x) < 2.1 && Math.abs(z) < 2.1) || onPath(x, z)) continue;      // keep the hut deck clear
-        k++;
-        d.position.set(x, 0, z);
-        d.rotation.set((rnd() - 0.5) * 0.12, rnd() * 6.283, (rnd() - 0.5) * 0.12);   // less tilt = tidier
-        const s = 0.85 + rnd() * 0.3;                                                  // narrower height range
-        d.scale.set(w, h * s, w); d.updateMatrix();
-        mesh.setMatrixAt(i, d.matrix); mesh.setColorAt(i++, c.copy(a).lerp(b, rnd()));
-      }
-    };
-    scatter(N1, 0, 8, 1, 1);        // dense: about 40 blades per m² within 8 m
-    scatter(N2, 8, 25, 2, 1.2);     // sparse, bigger tufts from 8 to 25 m
-    mesh.frustumCulled = false;
-    this.el.setObject3D('mesh', mesh);
-  }
-});
-
 /* ============ DIRT PATHS: flat strips with a canvas-generated speckled dirt texture (no image files) ============ */
 AFRAME.registerComponent('dirt-paths', {
   init: function () {
@@ -302,7 +268,6 @@ AFRAME.registerComponent('backdrop', {
 
   <!-- ===== TERRAIN ===== -->
   <a-plane rotation="-90 0 0" width="120" height="120" material="color: #4f8a3a; roughness: 1" shadow="receive: true"></a-plane>
-  <a-entity grass></a-entity>
   <a-entity dirt-paths></a-entity>
 
   <!-- ===== TREES (7, all 8 m+ from the hut) ===== -->
@@ -346,6 +311,6 @@ AFRAME.registerComponent('backdrop', {
 </html>
 <!--
   EXTEND: add trees with <a-entity tree="seed: 8; size: 1" position="x 0 z"></a-entity>.
-  More grass: raise N1/N2 in the grass component. Keep trees 8 m+ from the hut and off the camera line.
+  Keep trees 8 m+ from the hut and off the camera line.
   Cinematic camera: change the rig position and use look-controls to aim, or set rotation on the rig.
 -->
