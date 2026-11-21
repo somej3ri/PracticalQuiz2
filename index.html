@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Practical Quiz 2</title>
+<title>Practical Quiz 2 – Hut in an Open Field (A-Frame, no models)</title>
+<script src="aframe.js"></script>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<!-- <script src="aframe.js"></script> -->
 <script>
 /* ============ HELPERS (units: metres, +Y up, camera looks toward -Z) ============ */
 // Add a child primitive with the given attributes.
@@ -52,17 +52,99 @@ AFRAME.registerComponent('chair', {
   }
 });
 
-/* ============ TIN (static; origin = base). Label faces +Z ============ */
+/* ---- Label artwork, drawn on a canvas and wrapped around the tin (front = canvas centre) ---- */
+function ribs(g, W, H) {                       // faint horizontal ribs like a real tin
+  for (let y = H * 0.12; y < H * 0.9; y += H * 0.07) {
+    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.10)'; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.beginPath(); g.moveTo(0, y + 4); g.lineTo(W, y + 4); g.stroke();
+  }
+}
+function footballer(g, x, y, s) {              // simple stylised kicking player
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#8bd06f';
+  g.lineWidth = 26 * s; g.beginPath(); g.moveTo(x, y + 40 * s); g.lineTo(x + 70 * s, y + 95 * s); g.lineTo(x + 150 * s, y + 75 * s); g.stroke();
+  g.beginPath(); g.moveTo(x, y + 40 * s); g.lineTo(x - 40 * s, y + 110 * s); g.lineTo(x - 55 * s, y + 170 * s); g.stroke();
+  g.lineWidth = 46 * s; g.beginPath(); g.moveTo(x - 5 * s, y - 30 * s); g.lineTo(x, y + 35 * s); g.stroke();
+  g.strokeStyle = '#5e3b2c'; g.lineWidth = 16 * s;
+  g.beginPath(); g.moveTo(x - 10 * s, y - 40 * s); g.lineTo(x - 80 * s, y - 70 * s); g.stroke();
+  g.beginPath(); g.moveTo(x + 10 * s, y - 40 * s); g.lineTo(x + 70 * s, y - 95 * s); g.stroke();
+  g.fillStyle = '#5e3b2c'; g.beginPath(); g.arc(x, y - 75 * s, 22 * s, 0, 6.283); g.fill();
+  g.fillStyle = '#f4f4f4'; g.beginPath(); g.arc(x + 175 * s, y + 60 * s, 22 * s, 0, 6.283); g.fill();
+}
+function drawMilo(g, W, H) {                   // green tin, white/gold badge, brown MILO letters
+  const k = H / 770, cx = W / 2, by = H * 0.34;
+  g.fillStyle = '#1e9239'; g.fillRect(0, 0, W, H); ribs(g, W, H);
+  g.fillStyle = '#cdd3d6'; g.fillRect(0, 0, W, H * 0.05); g.fillRect(0, H * 0.955, W, H * 0.045);   // silver rims
+  g.strokeStyle = '#d9a521'; g.lineWidth = 14 * k; g.beginPath(); g.ellipse(cx - 12 * k, by + 10 * k, 285 * k, 128 * k, -0.06, 0, 6.283); g.stroke();
+  g.fillStyle = '#f3f6f8'; g.beginPath(); g.ellipse(cx, by, 272 * k, 118 * k, -0.06, 0, 6.283); g.fill();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#e2231a'; g.font = 'italic bold ' + 58 * k + 'px Georgia, serif'; g.fillText('Nestlé', cx + 110 * k, by - 78 * k);
+  g.font = 'italic 900 ' + 150 * k + 'px "Arial Black", Impact, sans-serif';
+  g.fillStyle = '#d9a521'; g.fillText('MILO', cx + 5 * k, by + 28 * k); g.fillStyle = '#6b1f1a'; g.fillText('MILO', cx, by + 22 * k);
+  g.fillStyle = '#e2231a'; g.beginPath(); g.ellipse(cx + 235 * k, by + 150 * k, 78 * k, 26 * k, -0.1, 0, 6.283); g.fill();
+  g.fillStyle = '#ffd24a'; g.font = 'italic bold ' + 26 * k + 'px Arial'; g.fillText('Activ-Go', cx + 235 * k, by + 150 * k);
+  footballer(g, cx - 10 * k, H * 0.68, k);
+  g.textAlign = 'left'; g.fillStyle = '#ffffff'; g.font = 'bold ' + 27 * k + 'px Arial';
+  ['THE ENERGY', 'FOOD DRINK'].forEach((t, i) => g.fillText(t, cx - 300 * k, H * 0.585 + i * 30 * k));
+  g.font = 'bold ' + 21 * k + 'px Arial';
+  ['LA BOISSON NUTRITIVE', 'ET ÉNERGÉTIQUE'].forEach((t, i) => g.fillText(t, cx - 300 * k, H * 0.675 + i * 26 * k));
+  g.fillStyle = '#6e2a24'; g.fillRect(cx - 310 * k, H * 0.83, 440 * k, H * 0.105);              // nutrition strip
+  g.fillStyle = '#fff'; for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(cx - 265 * k + i * 82 * k, H * 0.882, 27 * k, 0, 6.283); g.fill(); }
+  g.fillStyle = '#d8a84a'; g.fillRect(cx + 130 * k, H * 0.83, 70 * k, H * 0.105);               // "Find out more" tab
+  g.fillStyle = '#b5683a'; g.beginPath(); g.ellipse(cx + 285 * k, H * 0.74, 34 * k, 46 * k, 0.3, 0, 6.283); g.fill();   // chocolate swirl
+  g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold ' + 20 * k + 'px Arial'; g.fillText('Net weight', cx + 255 * k, H * 0.80);
+  g.font = 'bold ' + 50 * k + 'px Arial'; g.fillText('400g', cx + 255 * k, H * 0.87);
+}
+function drawNido(g, W, H) {                   // yellow tin, heart outline, green NIDO, red arrow, milk glass
+  const k = H / 885, cx = W / 2, hy = H * 0.29;
+  const gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, '#f7c800'); gr.addColorStop(0.72, '#f3b300'); gr.addColorStop(0.88, '#e8601c'); gr.addColorStop(1, '#cf2027');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H); ribs(g, W, H);
+  g.fillStyle = '#d5d8da'; g.fillRect(0, 0, W, H * 0.04);
+  g.strokeStyle = '#fbe58a'; g.lineWidth = 16 * k; g.lineJoin = 'round'; g.beginPath();           // heart outline
+  g.moveTo(cx, hy + 190 * k); g.bezierCurveTo(cx - 400 * k, hy - 20 * k, cx - 240 * k, hy - 280 * k, cx, hy - 90 * k);
+  g.bezierCurveTo(cx + 240 * k, hy - 280 * k, cx + 400 * k, hy - 20 * k, cx, hy + 190 * k); g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#1f6e35'; g.font = 'italic bold ' + 44 * k + 'px Georgia, serif'; g.fillText('Nestlé', cx - 120 * k, hy - 95 * k);
+  g.font = 'bold ' + 165 * k + 'px Georgia, serif'; g.strokeStyle = '#14502a'; g.lineWidth = 6 * k; g.fillStyle = '#1f7a3a';
+  g.strokeText('NIDO', cx, hy + 10 * k); g.fillText('NIDO', cx, hy + 10 * k);
+  g.fillStyle = '#d3262b'; g.font = 'bold ' + 40 * k + 'px Arial'; g.fillText('FORTIFIED', cx - 40 * k, hy + 120 * k);
+  const ax = cx - 215 * k, ay = H * 0.66;                                                          // red FortiGrow arrow
+  g.fillStyle = '#d3262b'; g.beginPath(); g.moveTo(ax, ay - 150 * k); g.lineTo(ax + 90 * k, ay - 50 * k); g.lineTo(ax + 45 * k, ay - 50 * k);
+  g.lineTo(ax + 45 * k, ay + 110 * k); g.lineTo(ax - 45 * k, ay + 110 * k); g.lineTo(ax - 45 * k, ay - 50 * k); g.lineTo(ax - 90 * k, ay - 50 * k); g.closePath(); g.fill();
+  g.fillStyle = '#fff'; g.font = 'italic bold ' + 24 * k + 'px Arial'; g.fillText('FortiGrow', ax, ay - 70 * k);
+  g.fillStyle = '#fff'; g.fillRect(cx - 120 * k, ay + 20 * k, 120 * k, 36 * k);
+  g.fillStyle = '#1b64b5'; g.font = 'bold ' + 14 * k + 'px Arial'; g.fillText('High Quality Proteins', cx - 60 * k, ay + 38 * k);
+  const gx = cx + 120 * k, gy = H * 0.64;                                                          // milk glass + splash
+  g.fillStyle = 'rgba(255,255,255,0.93)'; g.beginPath(); g.moveTo(gx - 110 * k, gy - 110 * k); g.lineTo(gx + 110 * k, gy - 110 * k);
+  g.lineTo(gx + 85 * k, gy + 170 * k); g.lineTo(gx - 85 * k, gy + 170 * k); g.closePath(); g.fill();
+  g.strokeStyle = '#cfe3ee'; g.lineWidth = 6 * k; g.stroke();
+  g.fillStyle = '#fff'; [[-70, -130, 26], [-10, -150, 32], [60, -140, 28], [100, -120, 18], [30, -200, 22]]
+    .forEach(p => { g.beginPath(); g.arc(gx + p[0] * k, gy + p[1] * k, p[2] * k, 0, 6.283); g.fill(); });
+  g.lineCap = 'round'; g.lineWidth = 30 * k; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(gx + 60 * k, gy - 240 * k); g.quadraticCurveTo(gx + 20 * k, gy - 190 * k, gx - 10 * k, gy - 130 * k); g.stroke();
+  g.fillStyle = '#fff7e0'; g.font = 'bold ' + 21 * k + 'px Arial'; g.fillText('Instant Full Cream Milk Powder', cx - 10 * k, H * 0.885);
+  g.font = 'bold ' + 24 * k + 'px Arial'; g.fillText('Net weight 2500g', cx + 200 * k, H * 0.935);
+}
+
+/* ============ TIN: kind = milo | nido. Cylinder wrapped with the canvas label, plus lid. Origin = base. Static (no rotation). ============ */
 AFRAME.registerComponent('tin', {
-  schema: { color: { default: '#2e7d32' }, label: { default: 'MILO' }, radius: { default: 0.055 }, height: { default: 0.14 } },
+  schema: { kind: { default: 'milo' }, radius: { default: 0.055 }, height: { default: 0.13 } },
   init: function () {
-    const el = this.el, d = this.data;
-    part(el, 'a-cylinder', { position: '0 ' + d.height / 2 + ' 0', radius: d.radius, height: d.height,
-      material: 'color: ' + d.color + '; metalness: 0.3; roughness: 0.5', shadow: 'cast: true' });
-    part(el, 'a-cylinder', { position: '0 ' + (d.height + 0.005) + ' 0', radius: d.radius + 0.003, height: 0.01,
-      material: 'color: #c0c0c0; metalness: 0.6; roughness: 0.4' });
-    part(el, 'a-text', { value: d.label, align: 'center', color: '#ffffff', width: d.radius * 4,
-      position: '0 ' + d.height / 2 + ' ' + (d.radius + 0.003) });
+    const d = this.data, r = d.radius, h = d.height, nido = d.kind === 'nido';
+    const W = 2048, H = Math.round(W * h / (2 * Math.PI * r));      // canvas matches the tin's unrolled surface
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    (nido ? drawNido : drawMilo)(cv.getContext('2d'), W, H);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = THREE.RepeatWrapping; tex.offset.x = 0.5;            // puts the canvas centre (front artwork) toward +Z
+    tex.anisotropy = 8; if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    const side = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45, metalness: 0.1 });
+    const cap = new THREE.MeshStandardMaterial({ color: nido ? 0xd9dcde : 0xe9eef0, roughness: 0.5 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 64), [side, cap, cap]);
+    body.position.y = h / 2;
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.004, r + 0.004, 0.014, 64),
+      new THREE.MeshStandardMaterial({ color: 0xf2f5f6, roughness: 0.3, transparent: nido ? false : true, opacity: 0.92 }));
+    lid.position.y = h + 0.007;
+    [body, lid].forEach(m => { m.castShadow = true; m.receiveShadow = true; });
+    this.el.object3D.add(body, lid);
   }
 });
 
@@ -250,8 +332,8 @@ AFRAME.registerComponent('backdrop', {
   <a-entity chair position="0.95 0 0" rotation="0 -90 0"></a-entity>
 
   <!-- ===== PROPS (tins are static: rotation 0 0 0) ===== -->
-  <a-entity tin="color: #2e7d32; label: MILO; radius: 0.055; height: 0.14" position="-0.3 0.78 0" rotation="0 0 0"></a-entity>
-  <a-entity tin="color: #1e63b5; label: MILK; radius: 0.05; height: 0.11" position="-0.12 0.78 0.05" rotation="0 0 0"></a-entity>
+  <a-entity tin="kind: milo; radius: 0.055; height: 0.13" position="-0.36 0.78 0.1" rotation="0 0 0"></a-entity>
+  <a-entity tin="kind: nido; radius: 0.07; height: 0.19" position="-0.12 0.78 -0.08" rotation="0 0 0"></a-entity>
   <a-entity cup position="0.25 0.78 -0.2"></a-entity>
   <a-entity cup="color: #ffe0b2" position="0.25 0.78 0.2"></a-entity>
 
