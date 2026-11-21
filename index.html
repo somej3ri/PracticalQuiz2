@@ -297,10 +297,12 @@ AFRAME.registerComponent('backdrop', {
   <a-entity chair position="0.95 0 0" rotation="0 -90 0"></a-entity>
 
   <!-- ===== PROPS (tins are static: rotation 0 0 0) ===== -->
-  <a-entity tin="kind: milo; radius: 0.055; height: 0.13" position="-0.36 0.78 0.1" rotation="0 0 0"></a-entity>
-  <a-entity tin="kind: nido; radius: 0.07; height: 0.19" position="-0.12 0.78 -0.08" rotation="0 0 0"></a-entity>
-  <a-entity cup position="0.25 0.78 -0.2"></a-entity>
-  <a-entity cup="color: #ffe0b2" position="0.25 0.78 0.2"></a-entity>
+  <a-entity tin="kind: milo; radius: 0.055; height: 0.13" position="-0.1 0.78 0.02" rotation="0 0 0"></a-entity>
+  <a-entity tin="kind: nido; radius: 0.07; height: 0.19" position="0.09 0.78 -0.02" rotation="0 0 0"></a-entity>
+  <!-- Three cups, one in front of each of three chairs (back, front, left); handles on each sitter's right -->
+  <a-entity cup position="0 0.78 -0.27" rotation="0 180 0"></a-entity>      <!-- back chair -->
+  <a-entity cup="color: #ffe0b2" position="0 0.78 0.27"></a-entity>          <!-- front chair -->
+  <a-entity cup="color: #e3f2fd" position="-0.45 0.78 0" rotation="0 -90 0"></a-entity>   <!-- left chair -->
 
   <!-- ===== CAMERA (first person). Cinematic options: wide 6 2.2 8 | close-up 0.9 1.1 1.4 ===== -->
   <a-entity position="0 1.0 3.4">
